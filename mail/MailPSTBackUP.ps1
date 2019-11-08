@@ -1,58 +1,58 @@
-# выполняет резервное копирование всех почтовых ящиков в заданную папку
+# РІС‹РїРѕР»РЅВ¤РµС‚ СЂРµР·РµСЂРІРЅРѕРµ РєРѕРїРёСЂРѕРІР°РЅРёРµ РІСЃРµС… РїРѕС‡С‚РѕРІС‹С… В¤С‰РёРєРѕРІ РІ Р·Р°РґР°РЅРЅСѓСЋ РїР°РїРєСѓ
 
-#=========== блок параметров ============
-#$localpath = "\\EXCHNG\BackUp"					# локальная копия
-$savepath = "\\xxx.xxx.xxx.xxx\MailBackUp"				# сетевая копия
-$maxcount = 2							# количество хранимых версий в сетевой копии
-$datefolder = [System.DateTime]::Now.ToString("yyyy-MM-dd")	# формат имени папки
+#=========== Р±Р»РѕРє РїР°СЂР°РјРµС‚СЂРѕРІ ============
+#$localpath = "\\EXCHNG\BackUp"					# Р»РѕРєР°Р»СЊРЅР°В¤ РєРѕРїРёВ¤
+$savepath = "\\xxx.xxx.xxx.xxx\MailBackUp"				# СЃРµС‚РµРІР°В¤ РєРѕРїРёВ¤
+$maxcount = 2							# РєРѕР»РёС‡РµСЃС‚РІРѕ С…СЂР°РЅРёРјС‹С… РІРµСЂСЃРёР№ РІ СЃРµС‚РµРІРѕР№ РєРѕРїРёРё
+$datefolder = [System.DateTime]::Now.ToString("yyyy-MM-dd")	# С„РѕСЂРјР°С‚ РёРјРµРЅРё РїР°РїРєРё
 
 
-#=========== создание папки для сохранения
+#=========== СЃРѕР·РґР°РЅРёРµ РїР°РїРєРё РґР»В¤ СЃРѕС…СЂР°РЅРµРЅРёВ¤
 if(!(Test-Path -Path $savepath\$datefolder )){New-Item $savepath\$datefolder -type directory}
-#if(!(Test-Path -Path $localpath )){New-Item $localpath -type directory} #не требуется для сетевых шар
+#if(!(Test-Path -Path $localpath )){New-Item $localpath -type directory} #РЅРµ С‚СЂРµР±СѓРµС‚СЃВ¤ РґР»В¤ СЃРµС‚РµРІС‹С… С€Р°СЂ
 
-#=========== очистка старых файлов в локальном бекапе
+#=========== РѕС‡РёСЃС‚РєР° СЃС‚Р°СЂС‹С… С„Р°Р№Р»РѕРІ РІ Р»РѕРєР°Р»СЊРЅРѕРј Р±РµРєР°РїРµ
 #Get-ChildItem -Path $localpath *.* -File -Recurse | foreach { $_.Delete()}
 
-#=========== экспорт ящиков в папку
+#=========== СЌРєСЃРїРѕСЂС‚ В¤С‰РёРєРѕРІ РІ РїР°РїРєСѓ
 
-#создание сессии
+#СЃРѕР·РґР°РЅРёРµ СЃРµСЃСЃРёРё
 $sess = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://Exch/PowerShell/ -Authentication Kerberos
 
-#очистка старого списка заданий экспорта
+#РѕС‡РёСЃС‚РєР° СЃС‚Р°СЂРѕРіРѕ СЃРїРёСЃРєР° Р·Р°РґР°РЅРёР№ СЌРєСЃРїРѕСЂС‚Р°
 Invoke-Command -Session $sess -ScriptBlock { Get-MailboxExportRequest | Remove-MailboxExportRequest -Confirm:$false }
 
-#запись в лог
+#Р·Р°РїРёСЃСЊ РІ Р»РѕРі
 Add-Content $savepath\mail.log "$(Get-Date)`texport`t$datefolder"
 
-#поиск ящиков (ПРИМЕЧАНИЕ: команда выполнит экспорт не более 1000 ящиков, при наличии 1000 и более добавить параметр -ResultSize unlimited для Get-Mailbox)
+#РїРѕРёСЃРє В¤С‰РёРєРѕРІ (С•вЂ“В»С›в‰€вЂћСРЊВ»в‰€: РєРѕРјР°РЅРґР° РІС‹РїРѕР»РЅРёС‚ СЌРєСЃРїРѕСЂС‚ РЅРµ Р±РѕР»РµРµ 1000 В¤С‰РёРєРѕРІ, РїСЂРё РЅР°Р»РёС‡РёРё 1000 Рё Р±РѕР»РµРµ РґРѕР±Р°РІРёС‚СЊ РїР°СЂР°РјРµС‚СЂ -ResultSize unlimited РґР»В¤ Get-Mailbox)
 $AllMailboxes = Invoke-Command -Session $sess -ScriptBlock { Get-Mailbox }
 
-#экспорт ящиков
+#СЌРєСЃРїРѕСЂС‚ В¤С‰РёРєРѕРІ
 $backup = join-path $savepath $datefolder
-$logcount = 0 #количество обработанных ящиков
+$logcount = 0 #РєРѕР»РёС‡РµСЃС‚РІРѕ РѕР±СЂР°Р±РѕС‚Р°РЅРЅС‹С… В¤С‰РёРєРѕРІ
 ForEach ( $MailBox in $AllMailboxes )
 	{
 	Invoke-Command -Session $sess -ScriptBlock {param ($MailBox, $path)  New-MailboxExportRequest -Mailbox $Mailbox -FilePath "$path\$($Mailbox).pst" } -ArgumentList $MailBox.Alias, $backup
 
-	#ожидание экспорта выгрузка списка готовых ящиков
-	while (((Invoke-Command -Session $sess -ScriptBlock {param ($MailBox) Get-MailboxExportRequest -mailbox $MailBox} -ArgumentList $MailBox.Alias) | ? {$_.Status -eq “Queued” -or $_.Status -eq “InProgress”}))
+	#РѕР¶РёРґР°РЅРёРµ СЌРєСЃРїРѕСЂС‚Р° РІС‹РіСЂСѓР·РєР° СЃРїРёСЃРєР° РіРѕС‚РѕРІС‹С… В¤С‰РёРєРѕРІ
+	while (((Invoke-Command -Session $sess -ScriptBlock {param ($MailBox) Get-MailboxExportRequest -mailbox $MailBox} -ArgumentList $MailBox.Alias) | ? {$_.Status -eq РЈQueuedР¤ -or $_.Status -eq РЈInProgressР¤}))
 	     {Start-Sleep -s 10}
 	$expmail = Invoke-Command -Session $sess -ScriptBlock {param ($MailBox) Get-MailboxExportRequest -mailbox $MailBox} -ArgumentList $MailBox.Alias
 	Add-Content $savepath\mail.log "$(Get-Date)`t$($expmail.Status)`t$($MailBox.Alias)`t`t$($expmail.filepath)"
 	$logcount ++
-#	Invoke-Command -Session $sess -ScriptBlock {param ($ide) Remove-MailboxExportRequest $ide -Confirm:$false} -ArgumentList $expmail.Identity #подчищаем список экспорта
+#	Invoke-Command -Session $sess -ScriptBlock {param ($ide) Remove-MailboxExportRequest $ide -Confirm:$false} -ArgumentList $expmail.Identity #РїРѕРґС‡РёС‰Р°РµРј СЃРїРёСЃРѕРє СЌРєСЃРїРѕСЂС‚Р°
 	}
 
-#сюда добавить экспорт оставшейся части списка со статусом, отличным от
+#СЃСЋРґР° РґРѕР±Р°РІРёС‚СЊ СЌРєСЃРїРѕСЂС‚ РѕСЃС‚Р°РІС€РµР№СЃВ¤ С‡Р°СЃС‚Рё СЃРїРёСЃРєР° СЃРѕ СЃС‚Р°С‚СѓСЃРѕРј, РѕС‚Р»РёС‡РЅС‹Рј РѕС‚
 Add-Content $savepath\mail.log "====== Other results ======"
 #Invoke-Command -Session $sess -ScriptBlock {Get-MailboxExportRequest -status failed | Get-MailboxExportRequestStatistics -IncludeReport} | Format-List > "$savepath\errors $datefolder.log"
 #Add-Content $savepath\mail.log "$savepath\errors $datefolder.log"
 Add-Content $savepath\mail.log "== END of other results ==="
 
-#=========== удаление старых копий и лог размеров архива
+#=========== СѓРґР°Р»РµРЅРёРµ СЃС‚Р°СЂС‹С… РєРѕРїРёР№ Рё Р»РѕРі СЂР°Р·РјРµСЂРѕРІ Р°СЂС…РёРІР°
 
-#поиск версий в сетевой папке сохраненения, сортировка в убывающем алфавитном порядке
+#РїРѕРёСЃРє РІРµСЂСЃРёР№ РІ СЃРµС‚РµРІРѕР№ РїР°РїРєРµ СЃРѕС…СЂР°РЅРµРЅРµРЅРёВ¤, СЃРѕСЂС‚РёСЂРѕРІРєР° РІ СѓР±С‹РІР°СЋС‰РµРј Р°Р»С„Р°РІРёС‚РЅРѕРј РїРѕСЂВ¤РґРєРµ
 $folders = Get-ChildItem $savepath | ?{ $_.PSIsContainer } | Select-Object Name | Sort-Object Name -Descending
 while ($folders.Count -gt $maxcount)
 	{
@@ -62,7 +62,7 @@ while ($folders.Count -gt $maxcount)
 	$folders = Get-ChildItem $savepath | ?{ $_.PSIsContainer } | Select-Object Name | Sort-Object Name -Descending
 	}
 
-# запись в лог размеров
+# Р·Р°РїРёСЃСЊ РІ Р»РѕРі СЂР°Р·РјРµСЂРѕРІ
 $size =Get-ChildItem (join-path $savepath $datefolder) | Measure-Object -property length -sum
 $boxes=(Get-ChildItem (join-path $savepath $datefolder) | Measure-Object).count
 $size = "{0:N2}" -f ($size.sum / 1MB) + " MB"
