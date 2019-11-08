@@ -1,28 +1,28 @@
-# резервное копирование файлов по запросу в заданную папку
+# СЂРµР·РµСЂРІРЅРѕРµ РєРѕРїРёСЂРѕРІР°РЅРёРµ С„Р°Р№Р»РѕРІ РїРѕ Р·Р°РїСЂРѕСЃСѓ РІ Р·Р°РґР°РЅРЅСѓСЋ РїР°РїРєСѓ
 #
-# Автор: Зотов В.И. (w31@zodcode.ru)
+# РђРІС‚РѕСЂ: Р—РѕС‚РѕРІ Р’.Р. (w31@zodcode.ru)
 #
-#=========== блок параметров ============
-$sourcepath = 	"\\xxx.xxx.xxx.xxx\path"			#источник 1
-$localpath = 	"D:\localpath"			#источник 2
-$incsavepath = 	"D:\BackUp\Full backup"			#полная версия со всеми файлами (в т.ч. удалёнными в оригинале)
-$savepath = 	"D:\BackUp\daily backup"			#копия за прошедшее количество дней
+#=========== Р±Р»РѕРє РїР°СЂР°РјРµС‚СЂРѕРІ ============
+$sourcepath = 	"\\xxx.xxx.xxx.xxx\path"			#РёСЃС‚РѕС‡РЅРёРє 1
+$localpath = 	"D:\localpath"			#РёСЃС‚РѕС‡РЅРёРє 2
+$incsavepath = 	"D:\BackUp\Full backup"			#РїРѕР»РЅР°СЏ РІРµСЂСЃРёСЏ СЃРѕ РІСЃРµРјРё С„Р°Р№Р»Р°РјРё (РІ С‚.С‡. СѓРґР°Р»С‘РЅРЅС‹РјРё РІ РѕСЂРёРіРёРЅР°Р»Рµ)
+$savepath = 	"D:\BackUp\daily backup"			#РєРѕРїРёСЏ Р·Р° РїСЂРѕС€РµРґС€РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РґРЅРµР№
 $logfile = 	"D:\BackUp\"
 
 $empty	=	"$logfile\EMPTY"
-$maxcount = 3						#сколько копий хранить
-$datefolder = [System.DateTime]::Now.ToString("yyyy-MM-dd") #имя папки текущего бекапа
+$maxcount = 3						#СЃРєРѕР»СЊРєРѕ РєРѕРїРёР№ С…СЂР°РЅРёС‚СЊ
+$datefolder = [System.DateTime]::Now.ToString("yyyy-MM-dd") #РёРјСЏ РїР°РїРєРё С‚РµРєСѓС‰РµРіРѕ Р±РµРєР°РїР°
 
 
-#=========== создание целевых папок
-if(!(Test-Path -Path $savepath\$datefolder )){New-Item $savepath\$datefolder -type directory}		#ежедневные папки
-if(!(Test-Path -Path $incsavepath )){New-Item $incsavepath -type directory}				#полная копия
-if((Test-Path -Path $logfile\EMPTY )){Remove-Item -LiteralPath $empty -Force}				#пустая папка
+#=========== СЃРѕР·РґР°РЅРёРµ С†РµР»РµРІС‹С… РїР°РїРѕРє
+if(!(Test-Path -Path $savepath\$datefolder )){New-Item $savepath\$datefolder -type directory}		#РµР¶РµРґРЅРµРІРЅС‹Рµ РїР°РїРєРё
+if(!(Test-Path -Path $incsavepath )){New-Item $incsavepath -type directory}				#РїРѕР»РЅР°СЏ РєРѕРїРёСЏ
+if((Test-Path -Path $logfile\EMPTY )){Remove-Item -LiteralPath $empty -Force}				#РїСѓСЃС‚Р°СЏ РїР°РїРєР°
 New-Item $empty -type directory
 
-#=========== проверка количества папок
-$folders = Get-ChildItem $savepath | ?{ $_.PSIsContainer } | Select-Object Name | Sort-Object Name -Descending		#список папок
-while ($folders.Count -gt $maxcount)											#удаление пока не остнется $maxcount папок
+#=========== РїСЂРѕРІРµСЂРєР° РєРѕР»РёС‡РµСЃС‚РІР° РїР°РїРѕРє
+$folders = Get-ChildItem $savepath | ?{ $_.PSIsContainer } | Select-Object Name | Sort-Object Name -Descending		#СЃРїРёСЃРѕРє РїР°РїРѕРє
+while ($folders.Count -gt $maxcount)											#СѓРґР°Р»РµРЅРёРµ РїРѕРєР° РЅРµ РѕСЃС‚РЅРµС‚СЃСЏ $maxcount РїР°РїРѕРє
 	{
 	$remfolder = $($folders[$folders.Count-1]).name
 	$remfolder = Join-Path $savepath $remfolder
@@ -32,12 +32,12 @@ while ($folders.Count -gt $maxcount)											#удаление пока не остнется $maxco
 	$folders = Get-ChildItem $savepath | ?{ $_.PSIsContainer } | Select-Object Name | Sort-Object Name -Descending
 	}
 
-#=========== ежедневная копия файлов и папок
+#=========== РµР¶РµРґРЅРµРІРЅР°СЏ РєРѕРїРёСЏ С„Р°Р№Р»РѕРІ Рё РїР°РїРѕРє
 $log=(join-path $logfile "\$datefolder copyLAN.log")
-robocopy "$sourcepath" "$savepath\$datefolder" /E /FFT /R:5 /W:10 /Z /NP /NDL /XJD /MT:4 /unilog:"$log"		#из удалённой папки
+robocopy "$sourcepath" "$savepath\$datefolder" /E /FFT /R:5 /W:10 /Z /NP /NDL /XJD /MT:4 /unilog:"$log"		#РёР· СѓРґР°Р»С‘РЅРЅРѕР№ РїР°РїРєРё
 $log=(join-path $logfile "\$datefolder copyLocal.log")
-robocopy "$localpath" "$savepath\$datefolder\8. Личные папки" /E /FFT /R:5 /W:10 /Z /NP /NDL /XJD /MT:4 /unilog:"$log"		#из локальной папки
+robocopy "$localpath" "$savepath\$datefolder\8. Р›РёС‡РЅС‹Рµ РїР°РїРєРё" /E /FFT /R:5 /W:10 /Z /NP /NDL /XJD /MT:4 /unilog:"$log"		#РёР· Р»РѕРєР°Р»СЊРЅРѕР№ РїР°РїРєРё
 
-#=========== полная копия файлов и папок
+#=========== РїРѕР»РЅР°СЏ РєРѕРїРёСЏ С„Р°Р№Р»РѕРІ Рё РїР°РїРѕРє
 $log=(join-path $logfile "\$datefolder copyFull.log")
-robocopy "$savepath\$datefolder" "$incsavepath" /E /FFT /R:10 /W:10 /Z /NP /NDL /XJD /MT:6 /unilog:"$log"		#из ежедневной папки
+robocopy "$savepath\$datefolder" "$incsavepath" /E /FFT /R:10 /W:10 /Z /NP /NDL /XJD /MT:6 /unilog:"$log"		#РёР· РµР¶РµРґРЅРµРІРЅРѕР№ РїР°РїРєРё
